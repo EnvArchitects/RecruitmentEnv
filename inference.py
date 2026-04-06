@@ -405,7 +405,7 @@ def main() -> None:
 
     # ── Import environment client ────────────────────────────────────────────
     # Import here so PYTHONPATH is resolved after Docker is up
-    from recruitment_screening_env import RecruitmentEnv
+    from client import RecruitmentEnv
 
     # ── Run all episodes ─────────────────────────────────────────────────────
     total_reward = 0.0
