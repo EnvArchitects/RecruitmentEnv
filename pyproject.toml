@@ -34,7 +34,4 @@ packages = [
     "recruitment_screening_env",
     "recruitment_screening_env.server",
 ]
-package-dir = {
-    "recruitment_screening_env" = ".",
-    "recruitment_screening_env.server" = "server",
-}
+package-dir = {"recruitment_screening_env" = ".", "recruitment_screening_env.server" = "server"}
