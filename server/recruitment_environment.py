@@ -605,7 +605,9 @@ def compute_reward(decision: dict, ground_truth: dict) -> tuple[float, dict]:
         reward += REWARD_WEIGHTS["executive_summary"]
     breakdown["executive_summary_present"] = has_summary
 
-    reward = round(min(max(reward, 0.0), 1.0), 4)
+    # Clamp to strictly open interval (0, 1) — platform rejects 0.0 and 1.0 exactly
+    _EPS = 0.001
+    reward = round(min(max(reward, _EPS), 1.0 - _EPS), 4)
     breakdown["total_reward"] = reward
     return reward, breakdown
 
