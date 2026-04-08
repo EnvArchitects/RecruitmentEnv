@@ -73,13 +73,14 @@ def _ts() -> str:
 
 
 def log_start(task_id: str, difficulty: str, seed: int) -> None:
-    print(json.dumps({
-        "event":      "[START]",
-        "task_id":    task_id,
-        "difficulty": difficulty,
-        "seed":       seed,
-        "timestamp":  _ts(),
-    }), flush=True)
+    # print(json.dumps({
+    #     "event":      "[START]",
+    #     "task_id":    task_id,
+    #     "difficulty": difficulty,
+    #     "seed":       seed,
+    #     "timestamp":  _ts(),
+    # }), flush=True)
+    print(f"[START] {task_id} | difficulty={difficulty} | seed={seed}", flush=True)
 
 
 def log_step(
@@ -90,16 +91,12 @@ def log_step(
     tool_output: str,
     reward: float,
 ) -> None:
-    print(json.dumps({
-        "event":               "[STEP]",
-        "task_id":             task_id,
-        "step":                step,
-        "tool_name":           tool_name,
-        "tool_input":          tool_input,
-        "tool_output_preview": tool_output[:400],
-        "reward":              reward,
-        "timestamp":           _ts(),
-    }), flush=True)
+    print(
+        f"[STEP] {task_id} | step={step} | tool={tool_name} | "
+        f"input={str(tool_input)} | output_preview={tool_output[:400]} | "
+        f"reward={reward}",
+        flush=True,
+    )
 
 
 def log_end(
@@ -111,17 +108,13 @@ def log_end(
     success: bool,
     error: str = "",
 ) -> None:
-    print(json.dumps({
-        "event":        "[END]",
-        "task_id":      task_id,
-        "difficulty":   difficulty,
-        "seed":         seed,
-        "final_reward": final_reward,
-        "total_steps":  total_steps,
-        "success":      success,
-        "error":        error,
-        "timestamp":    _ts(),
-    }), flush=True)
+    print(
+        f"[END] {task_id} | difficulty={difficulty} | seed={seed} | "
+        f"final_reward={final_reward} | total_steps={total_steps} | "
+        f"success={success} | error={error}",
+        flush=True,
+    )
+
 
 
 # ── Docker helpers ───────────────────────────────────────────────────────────
@@ -133,13 +126,13 @@ def start_container(image: str, port: int = 8000) -> str | None:
             capture_output=True, text=True, timeout=30,
         )
         if r.returncode != 0:
-            print(f"[WARN] docker run failed: {r.stderr.strip()}", file=sys.stderr)
+            # print(f"[WARN] docker run failed: {r.stderr.strip()}", file=sys.stderr)
             return None
         cid = r.stdout.strip()
-        print(f"[INFO] Container started: {cid[:12]}", file=sys.stderr)
+        # print(f"[INFO] Container started: {cid[:12]}", file=sys.stderr)
         return cid
     except Exception as exc:
-        print(f"[WARN] Could not start container: {exc}", file=sys.stderr)
+        # print(f"[WARN] Could not start container: {exc}", file=sys.stderr)
         return None
 
 
@@ -380,7 +373,7 @@ def run_episode(env, llm: OpenAI, task_id: str, difficulty: str, seed: int) -> f
 
 def main() -> None:
     if not HF_TOKEN:
-        print("[ERROR] HF_TOKEN is required. Set it via: export HF_TOKEN=hf_...", file=sys.stderr)
+        # print("[ERROR] HF_TOKEN is required. Set it via: export HF_TOKEN=hf_...", file=sys.stderr)
         sys.exit(1)
 
     # ── Start environment server ─────────────────────────────────────────────
@@ -391,14 +384,14 @@ def main() -> None:
         container_id = start_container(DOCKER_IMAGE)
         base_url = "http://localhost:8000"
         if not wait_for_health(base_url, timeout=90):
-            print(
-                f"[ERROR] Server at {base_url} did not become healthy within 90 seconds.",
-                file=sys.stderr,
-            )
+            # print(
+            #     f"[ERROR] Server at {base_url} did not become healthy within 90 seconds.",
+            #     file=sys.stderr,
+            # )
             if container_id:
                 stop_container(container_id)
             sys.exit(1)
-        print(f"[INFO] Server healthy at {base_url}", file=sys.stderr)
+        # print(f"[INFO] Server healthy at {base_url}", file=sys.stderr)
 
     # ── Connect LLM client ───────────────────────────────────────────────────
     llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
@@ -436,20 +429,10 @@ def main() -> None:
             total_reward += reward
             results.append({"task_id": task_id, "difficulty": cfg["difficulty"], "reward": reward})
 
-    # ── Summary ──────────────────────────────────────────────────────────────
-    avg = round(total_reward / len(TASKS), 4)
-    print(json.dumps({
-        "event":          "[SUMMARY]",
-        "tasks_run":      len(TASKS),
-        "average_reward": avg,
-        "results":        results,
-        "timestamp":      _ts(),
-    }), flush=True)
-
     # ── Cleanup ───────────────────────────────────────────────────────────────
     if container_id:
         stop_container(container_id)
-        print(f"[INFO] Container {container_id[:12]} stopped.", file=sys.stderr)
+        # print(f"[INFO] Container {container_id[:12]} stopped.", file=sys.stderr)
 
 
 if __name__ == "__main__":
