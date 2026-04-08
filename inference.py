@@ -72,46 +72,36 @@ def _ts() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def log_start(task_id: str, difficulty: str, seed: int) -> None:
-    # print(json.dumps({
-    #     "event":      "[START]",
-    #     "task_id":    task_id,
-    #     "difficulty": difficulty,
-    #     "seed":       seed,
-    #     "timestamp":  _ts(),
-    # }), flush=True)
-    print(f"[START] {task_id} | difficulty={difficulty} | seed={seed}", flush=True)
+def log_start(task_name: str, env: str, model: str) -> None:
+    print(f"[START] task={task_name} env={env} model={model}", flush=True)
 
 
 def log_step(
-    task_id: str,
     step: int,
-    tool_name: str,
-    tool_input: dict,
-    tool_output: str,
+    action: str,
     reward: float,
+    done: bool,
+    error: str | None,
 ) -> None:
+    done_str  = "true" if done else "false"
+    error_str = error if error else "null"
     print(
-        f"[STEP] {task_id} | step={step} | tool={tool_name} | "
-        f"input={str(tool_input)} | output_preview={tool_output[:400]} | "
-        f"reward={reward}",
+        f"[STEP] step={step} action={action} reward={reward:.2f} "
+        f"done={done_str} error={error_str}",
         flush=True,
     )
 
 
 def log_end(
-    task_id: str,
-    difficulty: str,
-    seed: int,
-    final_reward: float,
-    total_steps: int,
     success: bool,
-    error: str = "",
+    steps: int,
+    score: float,
+    rewards: list[float],
 ) -> None:
+    success_str  = "true" if success else "false"
+    rewards_str  = ",".join(f"{r:.2f}" for r in rewards)
     print(
-        f"[END] {task_id} | difficulty={difficulty} | seed={seed} | "
-        f"final_reward={final_reward} | total_steps={total_steps} | "
-        f"success={success} | error={error}",
+        f"[END] success={success_str} steps={steps} score={score:.2f} rewards={rewards_str}",
         flush=True,
     )
 
@@ -270,10 +260,10 @@ TOOLS = [
 
 # ── Episode runner ────────────────────────────────────────────────────────────
 
-def run_episode(env, llm: OpenAI, task_id: str, difficulty: str, seed: int) -> float:
+def run_episode(env, llm: OpenAI, task_name: str, difficulty: str, seed: int) -> float:
     """Run one full screening episode. Returns final reward (0.0–1.0)."""
 
-    log_start(task_id, difficulty, seed)
+    log_start(task_name=task_name, env="recruitment_screening_env", model=MODEL_NAME)
 
     # Reset environment for this task
     env.reset(difficulty=difficulty, seed=seed)
@@ -292,9 +282,12 @@ def run_episode(env, llm: OpenAI, task_id: str, difficulty: str, seed: int) -> f
     final_reward = 0.0
     step = 0
     done = False
+    step_rewards: list[float] = []
+    last_error: str | None = None
 
     while step < MAX_STEPS and not done:
         step += 1
+        last_error = None
 
         response = llm.chat.completions.create(
             model=MODEL_NAME,
@@ -326,6 +319,9 @@ def run_episode(env, llm: OpenAI, task_id: str, difficulty: str, seed: int) -> f
 
         if not choice.message.tool_calls:
             # Agent stopped calling tools — episode ends
+            step_rewards.append(0.0)
+            log_step(step=step, action="(no tool call)", reward=0.0, done=True, error=None)
+            done = True
             break
 
         for tc in choice.message.tool_calls:
@@ -335,21 +331,41 @@ def run_episode(env, llm: OpenAI, task_id: str, difficulty: str, seed: int) -> f
             except json.JSONDecodeError:
                 tool_args = {}
 
+            # Build a compact action string for the log
+            args_repr = ", ".join(
+                f"{k}={repr(v)[:80]}" for k, v in tool_args.items()
+            )
+            action_str = f"{tool_name}({args_repr})"
+
             # Execute tool on the environment
-            result_str = env.call_tool(tool_name, **tool_args)
+            try:
+                result_str = env.call_tool(tool_name, **tool_args)
+            except Exception as exc:
+                last_error = str(exc)
+                result_str = json.dumps({"error": last_error})
 
             # Track reward if this was a decision submission
-            current_reward = final_reward
+            step_reward = 0.0
             if tool_name == "submit_decision":
                 try:
                     result_data = json.loads(result_str)
-                    current_reward = float(result_data.get("reward", 0.0))
-                    final_reward   = current_reward
+                    step_reward  = float(result_data.get("reward", 0.0))
+                    final_reward = step_reward
                     done = bool(result_data.get("done", True))
-                except Exception:
+                    if "error" in result_data:
+                        last_error = result_data["error"]
+                except Exception as exc:
+                    last_error = str(exc)
                     done = True
 
-            log_step(task_id, step, tool_name, tool_args, result_str, current_reward)
+            step_rewards.append(step_reward)
+            log_step(
+                step=step,
+                action=action_str,
+                reward=step_reward,
+                done=done,
+                error=last_error,
+            )
 
             # Feed result back to LLM
             messages.append({
@@ -359,12 +375,10 @@ def run_episode(env, llm: OpenAI, task_id: str, difficulty: str, seed: int) -> f
             })
 
     log_end(
-        task_id=task_id,
-        difficulty=difficulty,
-        seed=seed,
-        final_reward=final_reward,
-        total_steps=step,
         success=(final_reward > 0.0),
+        steps=step,
+        score=final_reward,
+        rewards=step_rewards,
     )
     return final_reward
 
@@ -410,19 +424,16 @@ def main() -> None:
             try:
                 reward = run_episode(
                     env, llm,
-                    task_id=task_id,
+                    task_name=task_id,
                     difficulty=cfg["difficulty"],
                     seed=cfg["seed"],
                 )
             except Exception as exc:
                 log_end(
-                    task_id=task_id,
-                    difficulty=cfg["difficulty"],
-                    seed=cfg["seed"],
-                    final_reward=0.0,
-                    total_steps=0,
                     success=False,
-                    error=str(exc),
+                    steps=0,
+                    score=0.0,
+                    rewards=[],
                 )
                 reward = 0.0
 
