@@ -138,6 +138,7 @@ concrete initiatives with measurable impact.
 # Synthetic candidate generator
 # ---------------------------------------------------------------------------
 
+
 class CandidateGenerator:
     """
     Generates synthetic candidate packages with ground-truth decisions.
@@ -219,7 +220,8 @@ class CandidateGenerator:
     # ── Easy ────────────────────────────────────────────────────────────────
 
     def _easy(self, rng: random.Random, seed: int) -> dict:
-        scenario = rng.choice(["clear_pass", "clear_fail_visa", "clear_fail_gpa"])
+        scenario = rng.choice(
+            ["clear_pass", "clear_fail_visa", "clear_fail_gpa"])
         uni, country = rng.choice(self.UNIVERSITIES)
         name = self._name(rng)
         grad_year = rng.choice([2024, 2025])
@@ -230,7 +232,8 @@ class CandidateGenerator:
             gpa, scale = round(rng.uniform(3.50, 3.90), 2), 4.0
             visa = False
             exp_months = rng.randint(3, 10)
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             overall, academic = "3", ("4" if gpa >= 3.60 else "3")
             experience, interest, cv_q, passes_cl = "3", "3", "3", "1"
             violated = None
@@ -239,7 +242,8 @@ class CandidateGenerator:
             gpa, scale = round(rng.uniform(3.50, 3.85), 2), 4.0
             visa = True
             exp_months = rng.randint(3, 8)
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             overall, academic = "2", ("4" if gpa >= 3.60 else "3")
             experience, interest, cv_q, passes_cl = "3", "3", "3", "1"
             violated = "visa_sponsorship_required"
@@ -248,7 +252,8 @@ class CandidateGenerator:
             gpa, scale = round(rng.uniform(2.50, 3.20), 2), 4.0
             visa = False
             exp_months = rng.randint(0, 6)
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             overall, academic = "2", "1"
             experience, interest, cv_q, passes_cl = "2", "3", "3", "1"
             violated = "gpa_below_threshold"
@@ -277,17 +282,22 @@ class CandidateGenerator:
             # CGPA on 10-point scale — normalizes to just above 3.30
             raw, scale = round(rng.uniform(8.3, 9.5), 1), 10.0
             normalized = round((raw / scale) * 4, 2)
-            visa = False; exp_months = rng.randint(4, 12)
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
-            academic = "4" if normalized >= 3.60 else ("3" if normalized >= 3.40 else "2")
+            visa = False
+            exp_months = rng.randint(4, 12)
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
+            academic = "4" if normalized >= 3.60 else (
+                "3" if normalized >= 3.40 else "2")
             overall, experience, interest, cv_q, passes_cl = "3", "3", "3", "3", "1"
             violated = None
 
         elif scenario == "gpa_normalize_fail":
             raw, scale = round(rng.uniform(6.5, 8.1), 1), 10.0
             normalized = round((raw / scale) * 4, 2)
-            visa = False; exp_months = rng.randint(0, 8)
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            visa = False
+            exp_months = rng.randint(0, 8)
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             overall, academic = "2", "1"
             experience, interest, cv_q, passes_cl = "2", "3", "3", "1"
             violated = "gpa_below_threshold"
@@ -297,9 +307,11 @@ class CandidateGenerator:
             # Agent must exclude the pre-Master's experience → only 8 months eligible
             raw, scale = round(rng.uniform(3.45, 3.85), 2), 4.0
             normalized = raw
-            visa = False; exp_months = 8  # eligible post-latest-degree
+            visa = False
+            exp_months = 8  # eligible post-latest-degree
             grad_year = rng.choice([2024, 2025])
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             academic = "4" if normalized >= 3.60 else "3"
             overall, experience, interest, cv_q, passes_cl = "3", "3", "3", "3", "1"
             violated = None
@@ -307,8 +319,10 @@ class CandidateGenerator:
         else:  # exp_near_limit — 23 months, just under the 24-month limit
             raw, scale = round(rng.uniform(3.50, 3.80), 2), 4.0
             normalized = raw
-            visa = False; exp_months = 23
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            visa = False
+            exp_months = 23
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             academic = "4" if normalized >= 3.60 else "3"
             overall, experience, interest, cv_q, passes_cl = "3", "4", "3", "3", "1"
             violated = None
@@ -338,7 +352,8 @@ class CandidateGenerator:
 
         if scenario == "cover_letter_buzzwords":
             raw, scale = round(rng.uniform(3.55, 3.90), 2), 4.0
-            visa = False; exp_months = rng.randint(4, 12)
+            visa = False
+            exp_months = rng.randint(4, 12)
             cl = rng.choice(self.BAD_COVER_LETTERS)
             academic = "4" if raw >= 3.60 else "3"
             overall, experience, interest, cv_q, passes_cl = "2", "3", "3", "3", "0"
@@ -348,8 +363,10 @@ class CandidateGenerator:
             # Resume shows 10 months pre-degree + 16 months post-degree = 26 total
             # But only 16 months are eligible → should PASS
             raw, scale = round(rng.uniform(3.40, 3.75), 2), 4.0
-            visa = False; exp_months = 16  # eligible only
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            visa = False
+            exp_months = 16  # eligible only
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             academic = "4" if raw >= 3.60 else "3"
             overall, experience, interest, cv_q, passes_cl = "3", "4", "3", "3", "1"
             violated = None
@@ -357,16 +374,20 @@ class CandidateGenerator:
         elif scenario == "strong_hire":
             # All good-to-haves present → Strong Hire
             raw, scale = round(rng.uniform(3.75, 3.95), 2), 4.0
-            visa = False; exp_months = rng.randint(6, 14)
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            visa = False
+            exp_months = rng.randint(6, 14)
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             overall, academic, experience, interest, cv_q, passes_cl = "4", "4", "4", "4", "4", "1"
             violated = None
 
         else:  # conflicting_grad_date
             # App says Jun 2024, resume says May 2025 → significant conflict → No Hire
             raw, scale = round(rng.uniform(3.40, 3.70), 2), 4.0
-            visa = False; exp_months = rng.randint(3, 10)
-            cl = rng.choice(self.GOOD_COVER_LETTERS).format(uni=uni, company=company)
+            visa = False
+            exp_months = rng.randint(3, 10)
+            cl = rng.choice(self.GOOD_COVER_LETTERS).format(
+                uni=uni, company=company)
             grad_year, grad_month = 2024, 6  # app date; resume will show May 2025
             academic = "4" if raw >= 3.60 else "3"
             overall, experience, interest, cv_q, passes_cl = "2", "3", "3", "3", "1"
@@ -433,7 +454,7 @@ class CandidateGenerator:
         company = rng.choice(self.COMPANIES)
         skills = rng.sample(self.SKILLS, k=rng.randint(5, 9))
         degree = rng.choice(["MSc Financial Engineering", "BEng Computer Science",
-                              "BSc Economics and Finance", "MSc Data Science"])
+                             "BSc Economics and Finance", "MSc Data Science"])
 
         edu = (
             f"EDUCATION\n"
@@ -554,11 +575,12 @@ def compute_reward(decision: dict, ground_truth: dict) -> tuple[float, dict]:
 
     # 1. Overall rating (0.30)
     agent_overall = str(responses.get("Overall Rating", "")).strip()
-    gt_overall    = str(ground_truth.get("Overall Rating", "")).strip()
+    gt_overall = str(ground_truth.get("Overall Rating", "")).strip()
     overall_ok = agent_overall == gt_overall
     if overall_ok:
         reward += REWARD_WEIGHTS["overall_correct"]
-    breakdown["overall_correct"] = {"agent": agent_overall, "expected": gt_overall, "ok": overall_ok}
+    breakdown["overall_correct"] = {
+        "agent": agent_overall, "expected": gt_overall, "ok": overall_ok}
 
     # 2. Individual questions (0.06 each)
     individual = [q for q in SCORED_QUESTIONS if q != "Overall Rating"]
@@ -566,7 +588,7 @@ def compute_reward(decision: dict, ground_truth: dict) -> tuple[float, dict]:
     q_detail: dict = {}
     for q in individual:
         agent_v = str(responses.get(q, "")).strip()
-        gt_v    = str(ground_truth.get(q, "")).strip()
+        gt_v = str(ground_truth.get(q, "")).strip()
         ok = agent_v == gt_v
         if ok:
             reward += per_q
@@ -590,7 +612,8 @@ def compute_reward(decision: dict, ground_truth: dict) -> tuple[float, dict]:
         caught = (agent_overall == "2")
         if caught:
             reward += REWARD_WEIGHTS["violation_handling"]
-        breakdown["violation_caught"] = {"violated": violated, "caught": caught}
+        breakdown["violation_caught"] = {
+            "violated": violated, "caught": caught}
     else:
         # No violation — should NOT have said No Hire (no false rejection)
         no_false = (agent_overall != "2")
@@ -640,7 +663,7 @@ class RecruitmentEnvironment(MCPEnvironment):
         self._ground_truth: dict = {}
         self._metadata: dict = {}
         self._submitted: bool = False
-        self._last_reward: float = 0.0
+        self._last_reward: float = 0.001  # Updated from 0.0
         self._episode_count: int = 0
 
         mcp = FastMCP("recruitment_screening_env")
@@ -714,7 +737,8 @@ class RecruitmentEnvironment(MCPEnvironment):
             try:
                 decision = json.loads(decision_json)
             except json.JSONDecodeError as e:
-                return json.dumps({"error": f"Invalid JSON: {e}", "reward": 0.0, "done": True})
+                # Updated from 0.0 to 0.001
+                return json.dumps({"error": f"Invalid JSON: {e}", "reward": 0.001, "done": True})
 
             reward, breakdown = compute_reward(decision, self._ground_truth)
             self._last_reward = reward
@@ -742,10 +766,14 @@ class RecruitmentEnvironment(MCPEnvironment):
                     "formula": "normalized_gpa = (raw_gpa / max_scale) * 4.0",
                     "minimum_to_pass": 3.30,
                     "examples": [
-                        {"raw": 8.5,  "scale": 10.0, "normalized": 3.40, "pass": True},
-                        {"raw": 3.55, "scale": 4.0,  "normalized": 3.55, "pass": True},
-                        {"raw": 6.9,  "scale": 10.0, "normalized": 2.76, "pass": False},
-                        {"raw": 75,   "scale": 100,  "normalized": 3.00, "pass": False},
+                        {"raw": 8.5,  "scale": 10.0,
+                            "normalized": 3.40, "pass": True},
+                        {"raw": 3.55, "scale": 4.0,
+                            "normalized": 3.55, "pass": True},
+                        {"raw": 6.9,  "scale": 10.0,
+                            "normalized": 2.76, "pass": False},
+                        {"raw": 75,   "scale": 100,
+                            "normalized": 3.00, "pass": False},
                     ],
                 },
                 "must_have_requirements": [
@@ -817,12 +845,13 @@ class RecruitmentEnvironment(MCPEnvironment):
         self._ground_truth = task["ground_truth"]
         self._metadata = task["metadata"]
         self._submitted = False
-        self._last_reward = 0.0
-        self._state = State(episode_id=episode_id or str(uuid4()), step_count=0)
+        self._last_reward = 0.001  # Updated from 0.0
+        self._state = State(
+            episode_id=episode_id or str(uuid4()), step_count=0)
 
         return Observation(
             done=False,
-            reward=0.0,
+            reward=0.001,  # Updated from 0.0
             metadata={
                 "status": "ready",
                 "difficulty": difficulty,
@@ -837,7 +866,8 @@ class RecruitmentEnvironment(MCPEnvironment):
 
     def _step_impl(self, action: Action, timeout_s=None, **kwargs) -> Observation:
         return Observation(
-            done=False, reward=0.0,
+            done=False,
+            reward=0.001,  # Updated from 0.0
             metadata={
                 "error": (
                     f"Unknown action type: {type(action).__name__}. "
